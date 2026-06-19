@@ -61,10 +61,10 @@ async function sendMessage(text) {
     typing.classList.remove('typing');
     historial.push({ role: 'assistant', content: reply });
   } catch (err) {
-    // Si el proxy falla, cae al modo local sin mostrar error
+    // Si Gemini falla (sin cuota/créditos), responde con el motor local sobre datos reales del Sheet
     await new Promise(r => setTimeout(r, 200));
     const reply = respuestaLocal(text);
-    typing.textContent = reply + '\n\n(Modo local — Vercel no conectado aún)';
+    typing.textContent = reply;
     typing.classList.remove('typing');
     historial.push({ role: 'assistant', content: reply });
   }
