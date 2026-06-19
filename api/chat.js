@@ -1,12 +1,17 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+const API_KEY = process.env.GEMINI_API_KEY;
 
-const SYSTEM_PROMPT = `Eres un asistente de marketing digital especializado en análisis de campañas en redes sociales.
+// Models in priority order — tries each until one works
+const MODELS = [
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-pro',
+  'gemini-1.0-pro',
+];
+
+const SYSTEM_PROMPT = `Eres un asistente de marketing digital especializado en análisis de campañas en redes sociales de La Ibérica AQP.
 Responde ÚNICAMENTE con base en los datos de la campaña que se te proporcionan.
-Sé conciso, directo y útil. Usa números exactos del dataset cuando los menciones.
-Si la pregunta no tiene relación con los datos, indícalo amablemente.
+Sé conciso, directo y útil. Usa números exactos del dataset.
 Responde siempre en español.`;
 
 export default async function handler(req, res) {
@@ -17,35 +22,54 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  if (!API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en Vercel' });
+
   const { mensaje, historial = [], contexto = '' } = req.body || {};
   if (!mensaje) return res.status(400).json({ error: 'Falta el campo "mensaje"' });
 
-  // Build Gemini chat history (role: 'user' | 'model')
-  // First inject the system context as a user→model exchange
-  const history = [
-    {
-      role: 'user',
-      parts: [{ text: `${SYSTEM_PROMPT}\n\nDAT OS DE LA CAMPAÑA:\n${contexto}` }],
-    },
-    {
-      role: 'model',
-      parts: [{ text: 'Entendido. Estoy listo para responder preguntas sobre esta campaña de redes sociales.' }],
-    },
+  const contents = [
+    { role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nDATOS DE LA CAMPAÑA:\n${contexto}` }] },
+    { role: 'model', parts: [{ text: 'Entendido. Listo para responder sobre la campaña.' }] },
     ...historial.slice(-8).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     })),
+    { role: 'user', parts: [{ text: mensaje }] },
   ];
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(mensaje);
-    const respuesta = result.response.text() || '(sin respuesta)';
-    return res.status(200).json({ respuesta });
-  } catch (err) {
-    console.error('Gemini error:', err);
-    const status = err.status || 500;
-    return res.status(status).json({ error: err.message || 'Error al contactar Gemini' });
+  const body = JSON.stringify({
+    contents,
+    generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
+  });
+
+  // Try each model in order, pick the first that responds
+  let lastError = '';
+  for (const model of MODELS) {
+    // Try v1 first, then v1beta
+    for (const apiVersion of ['v1', 'v1beta']) {
+      const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${API_KEY}`;
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        const data = await r.json();
+        if (r.ok) {
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '(sin respuesta)';
+          return res.status(200).json({ respuesta: text, modelo: `${model} (${apiVersion})` });
+        }
+        // 404 = model not found, try next; 429/400/401 = stop or try next model
+        lastError = data?.error?.message || `HTTP ${r.status}`;
+        if (r.status === 404) break; // this apiVersion doesn't have the model, skip apiVersion loop
+        if (r.status === 401 || r.status === 403) {
+          return res.status(r.status).json({ error: 'Clave de Gemini inválida o sin permisos. Verifica GEMINI_API_KEY en Vercel.' });
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
   }
+
+  return res.status(500).json({ error: `Ningún modelo de Gemini disponible para esta clave. Último error: ${lastError}` });
 }

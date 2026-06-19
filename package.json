@@ -7,9 +7,7 @@
     "dev": "npx serve . -p 3000",
     "vercel-dev": "vercel dev"
   },
-  "dependencies": {
-    "@google/generative-ai": "^0.21.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "vercel": "^41.0.0"
   }
