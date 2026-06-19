@@ -1,9 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// Update with your GitHub Pages URL before deploying
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+
+const SYSTEM_PROMPT = `Eres un asistente de marketing digital especializado en análisis de campañas en redes sociales.
+Responde ÚNICAMENTE con base en los datos de la campaña que se te proporcionan.
+Sé conciso, directo y útil. Usa números exactos del dataset cuando los menciones.
+Si la pregunta no tiene relación con los datos, indícalo amablemente.
+Responde siempre en español.`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
@@ -16,33 +20,32 @@ export default async function handler(req, res) {
   const { mensaje, historial = [], contexto = '' } = req.body || {};
   if (!mensaje) return res.status(400).json({ error: 'Falta el campo "mensaje"' });
 
-  const systemPrompt = `Eres un asistente de marketing digital especializado en análisis de campañas en redes sociales.
-Responde ÚNICAMENTE con base en los datos de la campaña que se te proporcionan a continuación.
-Sé conciso, directo y útil. Usa números exactos del dataset cuando los menciones.
-Si la pregunta no tiene relación con los datos de la campaña, indícalo amablemente y ofrece ayuda con los datos disponibles.
-Responde siempre en español.
-
-DATOS DE LA CAMPAÑA:
-${contexto}`;
-
-  const messages = [
-    ...historial.slice(-8).map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: mensaje },
+  // Build Gemini chat history (role: 'user' | 'model')
+  // First inject the system context as a user→model exchange
+  const history = [
+    {
+      role: 'user',
+      parts: [{ text: `${SYSTEM_PROMPT}\n\nDAT OS DE LA CAMPAÑA:\n${contexto}` }],
+    },
+    {
+      role: 'model',
+      parts: [{ text: 'Entendido. Estoy listo para responder preguntas sobre esta campaña de redes sociales.' }],
+    },
+    ...historial.slice(-8).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    })),
   ];
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      system: systemPrompt,
-      messages,
-    });
-
-    const respuesta = response.content[0]?.text || '(sin respuesta)';
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(mensaje);
+    const respuesta = result.response.text() || '(sin respuesta)';
     return res.status(200).json({ respuesta });
   } catch (err) {
-    console.error('Anthropic error:', err);
+    console.error('Gemini error:', err);
     const status = err.status || 500;
-    return res.status(status).json({ error: err.message || 'Error al contactar la IA' });
+    return res.status(status).json({ error: err.message || 'Error al contactar Gemini' });
   }
 }

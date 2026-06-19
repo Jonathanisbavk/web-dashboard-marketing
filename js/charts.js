@@ -1,6 +1,6 @@
 import { agrupar } from './kpis.js';
 
-const PALETTE = ['#6366f1','#22d3ee','#f59e0b','#10b981','#ef4444','#a78bfa','#fb923c'];
+const PALETTE = ['#b8892a','#6b0f1a','#c4973a','#9b2335','#d4b060','#7b1e2e','#e0b86a'];
 
 function getOrCreate(id, type, data, options = {}) {
   const canvas = document.getElementById(id);
@@ -41,8 +41,8 @@ function renderConversionesCampaña(rows) {
   getOrCreate('chartCampaña', 'bar', {
     labels,
     datasets: [
-      { label: 'Conversiones', data: labels.map(k => g[k].conversiones), backgroundColor: '#6366f1', borderRadius: 6 },
-      { label: 'Costo S/', data: labels.map(k => g[k].costo), backgroundColor: '#f59e0b', borderRadius: 6 },
+      { label: 'Conversiones', data: labels.map(k => g[k].conversiones), backgroundColor: '#6b0f1a', borderRadius: 6 },
+      { label: 'Costo S/', data: labels.map(k => g[k].costo), backgroundColor: '#b8892a', borderRadius: 6 },
     ]
   }, { scales: { x: { ticks: { color: getCSSVar('--text-muted') } }, y: { ticks: { color: getCSSVar('--text-muted') }, grid: { color: getCSSVar('--border') } } } });
 }
@@ -61,8 +61,8 @@ function renderEvolucion(rows) {
   getOrCreate('chartEvolucion', 'line', {
     labels: sorted.map(r => r.fechaStr),
     datasets: [
-      { label: 'Alcance', data: sorted.map(r => r.alcance), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.15)', tension: 0.4, fill: true, pointRadius: 4 },
-      { label: 'Interacciones', data: sorted.map(r => r.interacciones), borderColor: '#22d3ee', backgroundColor: 'transparent', tension: 0.4, pointRadius: 4 },
+      { label: 'Alcance', data: sorted.map(r => r.alcance), borderColor: '#b8892a', backgroundColor: 'rgba(184,137,42,0.15)', tension: 0.4, fill: true, pointRadius: 4 },
+      { label: 'Interacciones', data: sorted.map(r => r.interacciones), borderColor: '#9b2335', backgroundColor: 'transparent', tension: 0.4, pointRadius: 4 },
     ]
   }, { scales: { x: { ticks: { color: getCSSVar('--text-muted'), maxRotation: 45 } }, y: { ticks: { color: getCSSVar('--text-muted') }, grid: { color: getCSSVar('--border') } } } });
 }
