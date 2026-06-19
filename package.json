@@ -1,0 +1,16 @@
+{
+  "name": "web-dashboard-marketing",
+  "version": "1.0.0",
+  "description": "Dashboard de campaña en Redes Sociales + Chatbot Claude",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "vercel-dev": "vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "devDependencies": {
+    "vercel": "^41.0.0"
+  }
+}
