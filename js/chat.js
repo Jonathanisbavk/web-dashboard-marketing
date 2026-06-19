@@ -21,7 +21,7 @@ export function initChat(contextoData, rows, kpis) {
     box.classList.toggle('open');
     const msgs = document.getElementById('chatMessages');
     if (box.classList.contains('open') && msgs.children.length === 0) {
-      const modo = PROXY_URL ? '🤖 IA con Gemini' : '📊 Modo local (datos del Sheet)';
+      const modo = PROXY_URL ? 'IA con Gemini activa' : 'Modo local (datos del Sheet)';
       addMsg('assistant', `¡Hola! Soy el asistente de La Ibérica. ${modo}.\nPregúntame sobre publicaciones, plataformas, campañas o métricas.`);
     }
   });

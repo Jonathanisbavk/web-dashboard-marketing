@@ -117,8 +117,16 @@ function setupTheme() {
 }
 
 function updateThemeIcon(theme) {
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  const moon = document.getElementById('iconMoon');
+  const sun  = document.getElementById('iconSun');
+  if (!moon || !sun) return;
+  if (theme === 'dark') {
+    moon.style.display = 'none';
+    sun.style.display  = '';
+  } else {
+    moon.style.display = '';
+    sun.style.display  = 'none';
+  }
 }
 
 init();
