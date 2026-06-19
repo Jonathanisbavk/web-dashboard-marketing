@@ -30,7 +30,7 @@ async function init() {
   });
 
   const kpis = calcKPIs(allRows);
-  initChat(buildContexto(allRows, kpis));
+  initChat(buildContexto(allRows, kpis), allRows, kpis);
   setupTheme();
 }
 
